@@ -123,6 +123,8 @@ function setActions(permission, canFocus) {
   actionsEl.classList.toggle('show', !!permission || !!canFocus);
 }
 
+window.__setActions = setActions; // 调试/录演示用
+
 btnAllow.addEventListener('click', () => { if (currentPermId && window.remiAPI) window.remiAPI.decide(currentPermId, 'allow'); });
 btnDeny.addEventListener('click', () => { if (currentPermId && window.remiAPI) window.remiAPI.decide(currentPermId, 'deny'); });
 btnFocus.addEventListener('click', () => { if (window.remiAPI) window.remiAPI.focus(); });
