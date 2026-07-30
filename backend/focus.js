@@ -80,11 +80,13 @@ function focusCodexCli(cwd, cb) {
       .map(([pid]) => pid);
     if (!codexPids.length) return cb(new Error('没有在跑的 codex CLI 进程'));
 
-    // 多个 codex 进程时用 cwd 挑会话对应的那个。
-    // 挑不出来时宁可不动 —— 聚焦错窗口会把用户从全屏里拽出来,比没反应更糟。
+    // 用 cwd 认出会话对应的那个进程。
+    // cwd 已知时必须校验,即便只剩一个候选 —— VS Code 的 Codex 插件常驻一个
+    // codex 进程(cwd 是 /),会话真正所在的终端退出后它就是唯一候选,
+    // 不校验就会顺着它的父进程链聚焦到 VS Code。
+    // 认不出来时宁可不动:聚焦错窗口会把用户从全屏里拽出来,比没反应更糟。
     const pickByCwd = (pids, done) => {
-      if (pids.length === 1) return done(pids[0]);
-      if (!cwd) return done(null);
+      if (!cwd) return done(pids.length === 1 ? pids[0] : null);
       let idx = 0;
       const tryNext = () => {
         if (idx >= pids.length) return done(null);
@@ -98,7 +100,7 @@ function focusCodexCli(cwd, cb) {
     };
 
     pickByCwd(codexPids, (pid) => {
-      if (!pid) return cb(new Error('有多个 codex 进程,认不出会话在哪个里'));
+      if (!pid) return cb(new Error('认不出 CLI 会话在哪个终端里(会话可能已退出)'));
       // 沿父进程链向上找宿主 .app(终端或 IDE)
       let appPath = null;
       let cur = pid;
