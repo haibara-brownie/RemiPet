@@ -1,0 +1,34 @@
+MIT License
+
+Copyright (c) 2026 haibara-brownie
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+本 MIT 许可仅覆盖本仓库中的**代码**。不覆盖:
+
+1. **美术素材**（Spine 骨架、贴图、角色形象）。本仓库不包含任何素材，
+   使用者需自备，并自行确保拥有相应授权。
+
+2. **Spine Runtimes**（`@esotericsoftware/spine-player` 及其依赖）。
+   其许可为 Spine Runtimes License Agreement，要求：
+   - 每一位使用者需自行持有有效的 Spine Editor 许可证；
+   - 以任何形式再分发时，必须附带该许可与版权声明。
+   详见 THIRD-PARTY-NOTICES.md 与 https://esotericsoftware.com/spine-editor-license

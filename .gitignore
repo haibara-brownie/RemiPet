@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# ⚠️ 美术素材一律不入库 —— 角色 IP 与素材作者的权利都不属于本项目。
+# 使用者请自备 Spine 素材,详见 README「准备素材」。
+assets/spine/
+renderer/spine-data.js
+assets/icon.png
+assets/icon.icns
+assets/tray.png
+
+# 本机运行时数据
+*.log
+.DS_Store

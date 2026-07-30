@@ -1,0 +1,79 @@
+{
+  "name": "remi-pet",
+  "version": "0.1.0",
+  "description": "Spine 桌宠 — 实时监控 Claude Code 状态(素材自备)",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "install-hook": "node hook/install.js install",
+    "uninstall-hook": "node hook/install.js uninstall",
+    "gen-icon": "electron scripts/gen-icon.js",
+    "build:mac": "electron-builder --mac",
+    "gen-assets": "node scripts/gen-assets.js"
+  },
+  "build": {
+    "appId": "com.browniehaibara.remi-pet",
+    "productName": "RemiPet",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "backend/**/*",
+      "shared/**/*",
+      "hook/**/*",
+      "renderer/**/*",
+      "assets/tray.png",
+      "node_modules/**/*",
+      "!assets/spine/**",
+      "!scripts/**",
+      "!test/**",
+      "!dist/**"
+    ],
+    "extraResources": [
+      {
+        "from": "hook",
+        "to": "pet-hook/hook"
+      },
+      {
+        "from": "backend",
+        "to": "pet-hook/backend"
+      },
+      {
+        "from": "shared",
+        "to": "pet-hook/shared"
+      }
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "extendInfo": {
+        "LSUIElement": true
+      },
+      "identity": null
+    }
+  },
+  "dependencies": {
+    "@esotericsoftware/spine-player": "~4.2.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haibara-brownie/RemiPet.git"
+  },
+  "license": "MIT",
+  "author": "haibara-brownie"
+}

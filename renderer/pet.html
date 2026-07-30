@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>RemiPet</title>
+<link rel="stylesheet" href="../node_modules/@esotericsoftware/spine-player/dist/spine-player.css">
+<style>
+  html, body {
+    margin: 0; padding: 0; overflow: hidden;
+    width: 100%; height: 100%;
+    background: transparent;
+    -webkit-user-select: none; user-select: none;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+  }
+  body.debug { background: #2a2a35; }
+
+  #stage {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+  }
+
+  /* 气泡:按内容取高但设上限,剩下的留给人物。
+     注意 overflow 必须加在内层 —— 加在 #bubble 上会把 ::after 的小尾巴裁掉。 */
+  #bubble {
+    position: relative;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    max-height: 50%;
+    margin: 6px auto 0;
+    max-width: calc(100vw - 20px);
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 2px solid #b03a4a;
+    border-radius: 14px;
+    font-size: 12px; line-height: 1.45; color: #3a2a2e;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    opacity: 0; transform: translateY(4px) scale(.95);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  #bubble.show { opacity: 1; transform: translateY(0) scale(1); }
+  #bubble.tone-error { border-color: #d33; background: #fff0f0; color: #8a1f1f; }
+  #bubble.tone-error::after { border-top-color: #d33; }
+  #bubble.tone-warn { border-color: #e8a020; background: #fffbe8; }
+  #bubble.tone-warn::after { border-top-color: #e8a020; }
+
+  /* 操作按钮行(批准/拒绝/去回复)——必须可点击,脱离拖拽区 */
+  #actions {
+    display: none;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 6px;
+    -webkit-app-region: no-drag;
+  }
+  #actions.show { display: flex; }
+  #actions button {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 2px solid #b03a4a;
+    background: #fff;
+    color: #3a2a2e;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  }
+  #actions button:hover { filter: brightness(0.94); }
+  #actions button:active { transform: translateY(1px); }
+  #btn-allow { background: #2e9e5b !important; border-color: #21763f !important; color: #fff !important; }
+  #btn-deny { background: #d24a4a !important; border-color: #a13030 !important; color: #fff !important; }
+  #bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -8px;
+    transform: translateX(-50%);
+    border: 8px solid transparent; border-bottom: none;
+    border-top: 8px solid #b03a4a;
+  }
+
+  /* 人物区:可收缩但有下限,保证永远看得见蕾米 */
+  #player { flex: 1 1 auto; min-height: 44%; -webkit-app-region: drag; }
+  /* 文本内层负责裁切;超出用渐隐提示还有内容 */
+  #bubble-text {
+    display: block;
+    max-height: 100%;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #bubble.clipped #bubble-text {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent 100%);
+  }
+  /* 图标生成模式:藏掉气泡与按钮,人物铺满 */
+  body.icon-mode #bubble, body.icon-mode #actions { display: none !important; }
+  /* spine-player 默认样式带背景和边框,全部干掉 */
+  #player .spine-player { background: transparent !important; }
+  .spine-player-canvas { background: transparent !important; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div id="bubble"><span id="bubble-text"></span></div>
+    <div id="actions">
+      <button id="btn-allow">批准</button>
+      <button id="btn-deny">拒绝</button>
+      <button id="btn-focus">去回复</button>
+    </div>
+    <div id="player"></div>
+  </div>
+  <script src="../node_modules/@esotericsoftware/spine-player/dist/iife/spine-player.js"></script>
+  <script src="spine-data.js"></script>
+  <script src="pet.js"></script>
+</body>
+</html>
