@@ -146,6 +146,15 @@ function reportSize() {
   });
 }
 
+// 窗口随内容长高/缩回之后重新判定裁切标记——setBubble 里那次判定
+// 发生在窗口还没调整时,不重判会给已完整显示的气泡残留一道渐隐
+window.addEventListener('resize', () => {
+  requestAnimationFrame(() => {
+    if (!bubbleEl.classList.contains('show')) return;
+    bubbleEl.classList.toggle('clipped', bubbleTextEl.scrollHeight > bubbleTextEl.clientHeight + 1);
+  });
+});
+
 // 主进程推送:{ state, animation, bubble, tone, permission, canFocus }
 if (window.remiAPI) {
   window.remiAPI.onUpdate((u) => {

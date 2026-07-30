@@ -89,8 +89,11 @@ function applyContentSize(agent, bubbleH, actionsH) {
   if (extra === rt.extra) return;
   const [x, y] = win.getPosition();
   const [, curH] = win.getSize();
-  const newH = baseH + extra;
-  win.setBounds({ x, y: y + (curH - newH), width: w, height: newH });
+  const bottom = y + curH;
+  // 头顶空间不够就少长(顶出屏幕会被系统钳制 y,把底边越顶越低),气泡靠渐隐兜底
+  const waTop = screen.getDisplayMatching(win.getBounds()).workArea.y;
+  const newH = Math.min(baseH + extra, Math.max(baseH, bottom - waTop));
+  win.setBounds({ x, y: bottom - newH, width: w, height: newH });
   rt.extra = extra;
 }
 

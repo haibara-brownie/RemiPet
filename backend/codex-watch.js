@@ -72,7 +72,8 @@ class CodexWatcher {
     this.saveUsage();
   }
 
-  // —— 发现:扫今天和昨天的日目录(跨天/旧会话续写靠 rescan 周期覆盖) ——
+  // —— 发现:平时只扫今昨两天(新会话都落在这);周期性全量走一遍,
+  //    捕捉「续聊写回旧日期目录」的会话文件 ——
   dayDirs() {
     const out = [];
     for (const offset of [0, 1]) {
@@ -85,9 +86,29 @@ class CodexWatcher {
     return out;
   }
 
+  allDayDirs() {
+    const out = [];
+    let years = [];
+    try { years = fs.readdirSync(this.dir); } catch { return out; }
+    for (const y of years) {
+      if (!/^\d{4}$/.test(y)) continue;
+      let months = [];
+      try { months = fs.readdirSync(path.join(this.dir, y)); } catch { continue; }
+      for (const m of months) {
+        if (!/^\d{2}$/.test(m)) continue;
+        let days = [];
+        try { days = fs.readdirSync(path.join(this.dir, y, m)); } catch { continue; }
+        for (const d of days) if (/^\d{2}$/.test(d)) out.push(path.join(this.dir, y, m, d));
+      }
+    }
+    return out;
+  }
+
   rescan(initial) {
     const now = Date.now();
-    for (const dir of this.dayDirs()) {
+    this.rescanN = (this.rescanN || 0) + 1;
+    const dirs = (initial || this.rescanN % 8 === 0) ? this.allDayDirs() : this.dayDirs();
+    for (const dir of dirs) {
       let names = [];
       try { names = fs.readdirSync(dir); } catch { continue; }
       for (const name of names) {
@@ -97,7 +118,9 @@ class CodexWatcher {
         let st;
         try { st = fs.statSync(file); } catch { continue; }
         if (now - st.mtimeMs > ADOPT_WINDOW_MS) continue;
-        this.adopt(file, st, initial);
+        // 只有「刚创建的文件」才从头 tail;被续聊唤醒的老文件从末尾开始,
+        // 不然几 MB 的历史会被当成实时事件整段回放
+        this.adopt(file, st, initial || now - st.birthtimeMs > 60 * 1000);
       }
     }
     // 长期没动静的文件放手(Core 那边 1h 也会遗忘会话)
