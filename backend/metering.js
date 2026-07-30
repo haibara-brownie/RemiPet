@@ -97,7 +97,8 @@ class Metering {
   scan() {
     const now = Date.now();
     let dirty = false;
-    for (const file of this.listTranscripts()) {
+    const files = this.listTranscripts();
+    for (const file of files) {
       let st;
       try { st = fs.statSync(file); } catch { continue; }
       const cur = this.state.cursors[file];
@@ -116,6 +117,10 @@ class Metering {
       } catch {}
     }
     // 清理:seen 过期、daily 只留 KEEP_DAYS、消失文件的游标
+    const existing = new Set(files);
+    for (const file of Object.keys(this.state.cursors)) {
+      if (!existing.has(file)) { delete this.state.cursors[file]; dirty = true; }
+    }
     for (const [id, ts] of Object.entries(this.state.seen)) {
       if (now - ts > SEEN_TTL_MS) { delete this.state.seen[id]; dirty = true; }
     }
