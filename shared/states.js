@@ -43,9 +43,11 @@ const STATE_ANIM = {
 };
 
 // 写/执行类工具=狂写 d,读/搜类=边看边记 b
+// (前半是 Claude Code 工具名,后半是 Codex 工具名,两边不冲突,共用一张表)
 const WRITE_TOOLS = new Set([
   'Bash', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit',
   'TodoWrite', 'TaskCreate', 'TaskUpdate',
+  'exec', 'exec_command', 'write_stdin', 'apply_patch', 'js',
 ]);
 function toolAnim(toolName) { return WRITE_TOOLS.has(toolName) ? 'd' : 'b'; }
 
@@ -89,6 +91,11 @@ const TOOL_LABEL = {
   Task: '召唤了小弟干活', Agent: '召唤了小弟干活',
   WebFetch: '在上网冲浪', WebSearch: '在上网冲浪',
   TodoWrite: '在列清单', TaskCreate: '在列清单', TaskUpdate: '在列清单',
+  // Codex(CLI / ChatGPT App)工具名
+  exec: '在敲命令', exec_command: '在敲命令', write_stdin: '在敲命令',
+  apply_patch: '在改代码', js: '在跑脚本',
+  update_plan: '在列清单', view_image: '在看图', web_search: '在上网冲浪',
+  spawn_agent: '召唤了小弟干活', wait_agent: '在等小弟干完活', send_message: '在给小弟传话',
 };
 
 function toolBubble(toolName) {
@@ -100,9 +107,18 @@ function toolBubble(toolName) {
 
 function pick(arr) { return Array.isArray(arr) ? arr[Math.floor(Math.random() * arr.length)] : arr; }
 
+// 提示词情绪嗅探:夸奖 / 道谢 / 责备(Claude hook 与 Codex 适配器共用)
+function detectEmotion(prompt) {
+  if (typeof prompt !== 'string' || !prompt || prompt.length > 2000) return null;
+  if (/(谢谢|辛苦了|thank|thx)/i.test(prompt)) return 'thanks';
+  if (/(好棒|真棒|厉害|太强|干得好|优雅|完美|nb|牛逼|牛啊|爱你|(?:^|\s)666|good job|awesome|perfect|well done|great work)/i.test(prompt)) return 'praise';
+  if (/(笨蛋|太蠢|垃圾|什么玩意|搞什么|气死|无语)/i.test(prompt)) return 'scold';
+  return null;
+}
+
 module.exports = {
   STATE_PRIORITY, VALID_STATES, ONESHOT_TTL_MS,
   BUSY_STATES, BUSY_TTL_MS, SLEEPY_AFTER_MS,
   STATE_ANIM, STATE_BUBBLE, EMOTION_BUBBLE, EMOTION_ANIM,
-  toolBubble, toolAnim, errorLabel, pick,
+  toolBubble, toolAnim, errorLabel, pick, detectEmotion,
 };

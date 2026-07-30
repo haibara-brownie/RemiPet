@@ -58,7 +58,7 @@ class Core extends EventEmitter {
       sess.tone = 'info';
     } else if (state === 'waiting') {
       sess.bubble = this.notificationBubble(body.message);
-      sess.tone = /permission/i.test(body.message || '') ? 'warn' : 'info';
+      sess.tone = /permission|批准/i.test(body.message || '') ? 'warn' : 'info';
     } else if (state === 'error') {
       const base = S.pick(S.STATE_BUBBLE.error);
       sess.bubble = body.error_type ? `${base}(${S.errorLabel(body.error_type)})` : base;

@@ -40,6 +40,10 @@
     white-space: pre-wrap; word-break: break-word;
   }
   #bubble.show { opacity: 1; transform: translateY(0) scale(1); }
+  /* Codex 宠配色(OpenAI 绿);写在 tone 规则前面,warn/error 色优先级不受影响 */
+  .agent-codex #bubble { border-color: #0f9377; }
+  .agent-codex #bubble::after { border-top-color: #0f9377; }
+  .agent-codex #actions button { border-color: #0f9377; }
   #bubble.tone-error { border-color: #d33; background: #fff0f0; color: #8a1f1f; }
   #bubble.tone-error::after { border-top-color: #d33; }
   #bubble.tone-warn { border-color: #e8a020; background: #fffbe8; }
@@ -78,6 +82,22 @@
 
   /* 人物区:可收缩但有下限,保证永远看得见蕾米 */
   #player { flex: 1 1 auto; min-height: 44%; -webkit-app-region: drag; }
+
+  /* 脚边小名牌:双宠时分清谁是谁,半透明不抢戏 */
+  #nametag {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0 0 3px;
+    padding: 0 8px;
+    font-size: 9px; line-height: 14px;
+    color: #b03a4a;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(176, 58, 74, 0.65);
+    border-radius: 8px;
+    opacity: 0.75;
+    -webkit-app-region: drag;
+  }
+  .agent-codex #nametag { color: #0f9377; border-color: rgba(15, 147, 119, 0.65); }
   /* 文本内层负责裁切;超出用渐隐提示还有内容 */
   #bubble-text {
     display: block;
@@ -90,8 +110,8 @@
     -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent 100%);
     mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent 100%);
   }
-  /* 图标生成模式:藏掉气泡与按钮,人物铺满 */
-  body.icon-mode #bubble, body.icon-mode #actions { display: none !important; }
+  /* 图标生成模式:藏掉气泡按钮和名牌,人物铺满 */
+  body.icon-mode #bubble, body.icon-mode #actions, body.icon-mode #nametag { display: none !important; }
   /* spine-player 默认样式带背景和边框,全部干掉 */
   #player .spine-player { background: transparent !important; }
   .spine-player-canvas { background: transparent !important; }
@@ -106,6 +126,7 @@
       <button id="btn-focus">去回复</button>
     </div>
     <div id="player"></div>
+    <div id="nametag"></div>
   </div>
   <script src="../node_modules/@esotericsoftware/spine-player/dist/iife/spine-player.js"></script>
   <script src="spine-data.js"></script>

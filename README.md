@@ -2,6 +2,8 @@
 
 一个实时盯着 **Claude Code** 的桌宠:它会随 agent 的状态换动作(酝酿 / 动笔 / 翻资料 / 等你授权 / 完工 / 出错),把回复摘要弹成气泡,在上下文吃紧时预警,并在托盘里给出今日 token 用量与花费。需要授权时可以**直接在桌宠上一键批准或拒绝**,不用切回终端。
 
+托盘里还能勾出**第二只宠**,只读监视 **Codex**(CLI / ChatGPT App / VS Code 集成,同一只宠全覆盖):状态动画、回复摘要、上下文预警、「去回复」都有,详见[监听 Codex](#监听-codexcli--chatgpt-app--vs-code)。两只宠靠气泡配色(红 / 绿)和脚边小名牌区分。
+
 > ⚠️ **随缘更新**。自用的小玩意儿,想到什么加什么,没有路线图、没有版本承诺、不保证向后兼容。issue 和 PR 看到了会看,但不保证响应速度——你 fork 走自己改可能更快。
 
 > ⚠️ **本仓库只有代码,不含美术素材,也不提供预构建安装包。** 角色形象与 Spine 素材的权利都不属于本项目,你需要自备素材;不提供安装包的原因见 [许可与素材权利](#许可与素材权利-)。
@@ -27,7 +29,7 @@
 | <img src="docs/anim-a_win.gif" width="80" alt="回味微笑"> | 💗 **被夸 / 被谢** | 提示词里夸她或谢她——执笔抵着嘴角偷笑 |
 | <img src="docs/anim-0.gif" width="80" alt="静静看书"> | 😴 **sleeping 休息** | 会话结束,或空闲 10 分钟——自己静静看书,不弹气泡 |
 
-多个 Claude 会话同时跑时按优先级(出错 > 等授权 > 干活 > 酝酿)展示,气泡带 `[项目名]` 前缀。托盘菜单里还有:今日用量、尺寸调节、开机自启、完整演示(一次过完所有状态)。全程本地,不联网。
+多个会话同时跑时按优先级(出错 > 等授权 > 干活 > 酝酿)展示,气泡带 `[项目名]` 前缀。托盘菜单里还有:监听 Claude / Codex 勾选、今日用量、尺寸调节、开机自启、完整演示(一次过完所有状态)。全程本地,不联网。
 
 ## 它怎么接进 Claude Code
 
@@ -43,6 +45,19 @@
 3. 你在终端先答了 → Claude Code 断开挂起的连接,卡片自动撤销。
 
 同一请求被重发时会合并到同一张卡片,一次点击答复所有副本。`TaskCreate` 这类纯编排工具自动放行,`AskUserQuestion` 交还终端(选项交互在终端里体验更好)。
+
+## 监听 Codex(CLI / ChatGPT App / VS Code)
+
+Codex 宠走的是完全不同的路线:**不装任何 hook、不碰 Codex 的任何配置**,只读 tail `~/.codex/sessions/**/rollout-*.jsonl`。Codex CLI、ChatGPT 桌面 App、VS Code 集成共用同一个 `CODEX_HOME`,所有会话写同一种 rollout 文件——所以一个只读监听器就把三种来源全覆盖了。
+
+从 rollout 事件里能拿到:`task_started/task_complete`(完工还自带最后一条回复当摘要)、`user_message`(顺带做情绪反应)、工具调用(`exec`/`apply_patch` 等映射到动笔/翻资料动画)、`token_count`(算上下文百分比)、压缩、打断。子代理会话会被识别并过滤,不打扰主宠状态。
+
+**与 Claude 宠的差异:**
+
+- **纯监视,没有一键批准**。Codex 的审批走它自己的 UI 协议,文件监听是只读的插不进手。如果 rollout 里出现审批请求,气泡会转黄提醒并给「去回复」按钮引导你过去点。
+- 特意**不占用** Codex 的 `notify` 钩子:它只有一个坑位,很多人(比如 ChatGPT App 的 Computer Use)已经用着了。
+- 托盘只报 Codex 今日 tokens 不报钱(自定义中转没法定价),且只统计桌宠运行期间的增量。
+- 「去回复」按会话来源聚焦:ChatGPT App / VS Code 直接聚焦对应应用;CLI 会话按进程反查它所在的终端(Terminal.app / iTerm2 能精确到标签页)。
 
 ## 准备素材
 
@@ -92,14 +107,17 @@ cp -R dist/mac-arm64/RemiPet.app ~/Applications/
 Claude Code hooks(11 个生命周期事件 + PermissionRequest 阻塞式 HTTP hook)
   └─ hook/remi-hook.js      stdin JSON → 状态,POST /state(<600ms 必退出)
        └─ backend/server.js  127.0.0.1:41560-41564,响应头 x-remi-pet 识别自家服务
-            ├─ core.js        按 session 聚合 + 优先级 + TTL 回落
+            ├─ core.js        按 session 聚合 + 优先级 + TTL 回落(每只宠一个实例)
             ├─ permission.js  挂起 CC 连接等你点按钮,超时/断连自动放行终端
             ├─ transcript.js  读 transcript 尾部:回复摘要 / 上下文占用 / API 错误
             ├─ metering.js    增量扫 ~/.claude/projects 算 token 与费用
             └─ focus.js       「去回复」按 tty 精确聚焦会话所在终端标签页
-                 └─ renderer/pet.js   spine-player 切动画 + 气泡 + 按钮
 
-shared/states.js   状态词表、优先级、动画映射、台词的唯一事实源
+Codex(CLI / ChatGPT App / VS Code,零 hook)
+  └─ backend/codex-watch.js  只读 tail ~/.codex/sessions rollout → 翻译成同一套状态喂 core.js
+
+renderer/pet.js    spine-player 切动画 + 气泡 + 按钮(?agent= 区分两只宠的配色和名牌)
+shared/states.js   状态词表、优先级、动画映射、台词的唯一事实源(两边共用)
 ```
 
 ## 风险与权衡(已知)
@@ -111,6 +129,7 @@ shared/states.js   状态词表、优先级、动画映射、台词的唯一事�
 | **hook 残留** | 卸了桌宠但没卸 hook,Claude Code 每个事件仍会 spawn 一次 node | 连不上就静默退出(~150ms),影响极小;托盘可一键卸载,备份可回滚 |
 | **定价是估算** | 内置单价按公开价目表写死,未区分长上下文变体等情形 | 用 `~/.remi-pet/pricing.json` 覆盖 |
 | **读 transcript** | 会读 `~/.claude` 下的会话记录 | 只在本机读,只取 token 数 / 模型 / 时间戳 / 最后一段回复摘要,**不外传** |
+| **读 Codex 会话记录** | 勾选「监听 Codex」后会 tail `~/.codex/sessions` 下的 rollout 文件 | **纯只读**,不写不删、不碰 Codex 任何配置;同样只在本机、不外传 |
 | **回复摘要未做密钥脱敏** | 完工气泡显示最后一段 assistant 文本(截断 60 字),若回复里恰好有密钥会显示出来 | 只出现在你自己屏幕上;不想要可把 `backend/core.js` 里 `SNIPPET_BUBBLE_MAX` 改成 0 |
 | **「去回复」平台覆盖** | 只有 macOS 实测可用;Terminal.app / iTerm2 能按 tty 精确到标签页,其他终端只能聚焦到应用 | Windows / niri 的适配接口已留好,未实现 |
 | **计量去重边界** | 流式写入的重复行如果跨两次扫描被切开,理论上有极小概率重复计数 | 同文件内按 `message.id` 去重;概率极低 |
@@ -126,7 +145,8 @@ shared/states.js   状态词表、优先级、动画映射、台词的唯一事�
 
 ## 未做 / 后续
 
-- 只支持 **Claude Code**,不打算适配别的 agent。
+- 支持 **Claude Code**(全功能)与 **Codex**(只读监视),不打算适配别的 agent。
+- Codex 侧的一键批准:做不了,审批不走文件(见上文),这是边界不是 TODO。
 - Windows / Linux(niri)的「去回复」窗口聚焦。
 - 远程审批、自动更新、Electron 瘦身:没有计划。
 
@@ -134,9 +154,10 @@ shared/states.js   状态词表、优先级、动画映射、台词的唯一事�
 
 | 路径 | 内容 |
 |---|---|
-| `~/.remi-pet/config.json` | 窗口位置、尺寸 |
+| `~/.remi-pet/config.json` | 窗口位置、尺寸、监听开关 |
 | `~/.remi-pet/runtime.json` | 运行时端口(退出时清除) |
-| `~/.remi-pet/usage.json` | token 用量聚合(按天,保留 60 天) |
+| `~/.remi-pet/usage.json` | Claude token 用量聚合(按天,保留 60 天) |
+| `~/.remi-pet/codex-usage.json` | Codex token 用量聚合(按天,只记增量) |
 | `~/.remi-pet/pricing.json` | 可选,覆盖内置模型价格表 |
 | `~/.claude/settings.json.remi-backup` | 首次安装 hook 前的备份 |
 

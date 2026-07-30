@@ -8,6 +8,10 @@ const params = new URLSearchParams(location.search);
 if (params.has('debug')) document.body.classList.add('debug');
 // 生成图标时铺满画布,不留气泡空间
 if (params.has('icon')) document.body.classList.add('icon-mode');
+// 哪只宠:claude(默认,红)/ codex(绿),配色和脚边名牌跟着走
+const agent = params.get('agent') === 'codex' ? 'codex' : 'claude';
+document.body.classList.add(`agent-${agent}`);
+document.getElementById('nametag').textContent = agent === 'codex' ? 'Codex' : 'Claude';
 
 const bubbleEl = document.getElementById('bubble');
 const bubbleTextEl = document.getElementById('bubble-text');

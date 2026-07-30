@@ -36,9 +36,10 @@ function startServer(core, cb, opts = {}) {
       res.writeHead(200);
       return res.end('demo started');
     }
-    // 调试用:REMI_DEBUG_SNAP=1 时开启,返回当前窗口截图 PNG
-    if (req.method === 'GET' && req.url === '/snap' && opts.onSnap) {
-      opts.onSnap().then((png) => {
+    // 调试用:REMI_DEBUG_SNAP=1 时开启,返回宠物窗口截图 PNG(/snap?agent=codex 指定哪只)
+    if (req.method === 'GET' && req.url.startsWith('/snap') && opts.onSnap) {
+      const agent = new URL(req.url, 'http://x').searchParams.get('agent');
+      opts.onSnap(agent).then((png) => {
         res.writeHead(200, { 'content-type': 'image/png' });
         res.end(png);
       }).catch((e) => { res.writeHead(500); res.end(String(e)); });

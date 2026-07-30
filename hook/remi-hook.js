@@ -7,6 +7,7 @@
 
 const { postState } = require('../backend/transport');
 const transcript = require('../backend/transcript');
+const { detectEmotion } = require('../shared/states');
 
 const EVENT_STATE = {
   SessionStart: 'idle',
@@ -24,15 +25,6 @@ const EVENT_STATE = {
 
 // 只在这些事件上读 transcript(PreToolUse 太频繁,不读)
 const TRANSCRIPT_EVENTS = new Set(['UserPromptSubmit', 'Stop', 'Notification', 'PostCompact']);
-
-// 提示词情绪嗅探:夸奖 / 道谢 / 责备
-function detectEmotion(prompt) {
-  if (typeof prompt !== 'string' || !prompt || prompt.length > 2000) return null;
-  if (/(谢谢|辛苦了|thank|thx)/i.test(prompt)) return 'thanks';
-  if (/(好棒|真棒|厉害|太强|干得好|优雅|完美|nb|牛逼|牛啊|爱你|(?:^|\s)666|good job|awesome|perfect|well done|great work)/i.test(prompt)) return 'praise';
-  if (/(笨蛋|太蠢|垃圾|什么玩意|搞什么|气死|无语)/i.test(prompt)) return 'scold';
-  return null;
-}
 
 function readStdin() {
   return new Promise((resolve) => {
