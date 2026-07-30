@@ -9,7 +9,8 @@ const S = require('../shared/states');
 
 const SESSION_STALE_MS = 60 * 60 * 1000; // 一小时没动静的会话直接遗忘
 const SNIPPET_BUBBLE_MAX = 60;           // 完工气泡里的回复摘要长度(小窗容不下更多)
-const CTX_WARN_PERCENT = 75;             // 上下文占用超过该值开始提醒
+const CTX_SHOW_TOKENS = 150000;          // 上下文用量超过该值开始在气泡里标注真实数字
+const CTX_WARN_PERCENT = 75;             // percent 有真凭据且超过该值才转 warn(避免窗口猜错误报)
 
 class Core extends EventEmitter {
   constructor() {
@@ -41,7 +42,10 @@ class Core extends EventEmitter {
     sess.lastEventMs = now;
     if (body.cwd) sess.cwd = body.cwd;
     if (body.terminal) sess.terminal = body.terminal;
-    if (body.context) sess.contextPercent = body.context.percent;
+    if (body.context) {
+      sess.contextTokens = body.context.used ?? null;
+      sess.contextPercent = body.context.percent ?? null;
+    }
 
     if (body.event === 'SessionStart') {
       sess.bubble = body.source === 'startup' ? '哦?你来了' : null;
@@ -78,10 +82,13 @@ class Core extends EventEmitter {
       sess.tone = 'info';
     }
 
-    // 上下文占用高位提醒(附在气泡尾部)
-    if (sess.bubble && sess.contextPercent >= CTX_WARN_PERCENT && state !== 'error') {
-      sess.bubble += `\n(上下文已用 ${sess.contextPercent}%)`;
-      if (sess.tone === 'info') sess.tone = 'warn';
+    // 上下文占用提醒:报真实 tokens 不报百分比(窗口大小常猜不准);
+    // warn 变色只在 percent 有真凭据(1M 标记或已超 200k)且高位时触发
+    const ctxHot = sess.contextPercent != null && sess.contextPercent >= CTX_WARN_PERCENT;
+    if (sess.bubble && state !== 'error' && sess.contextTokens
+        && (sess.contextTokens >= CTX_SHOW_TOKENS || ctxHot)) {
+      sess.bubble += `\n(上下文已用 ${S.fmtTokens(sess.contextTokens)})`;
+      if (ctxHot && sess.tone === 'info') sess.tone = 'warn';
     }
 
     // 动画:working 按工具类型;情绪反应临时换装;其余进入状态时定格
@@ -147,6 +154,7 @@ class Core extends EventEmitter {
       bubble,
       tone: winner.tone || 'info',
       terminal: winner.terminal || null,
+      contextTokens: winner.contextTokens ?? null,
       contextPercent: winner.contextPercent ?? null,
     };
   }

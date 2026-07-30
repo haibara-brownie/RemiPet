@@ -133,11 +133,25 @@ btnAllow.addEventListener('click', () => { if (currentPermId && window.remiAPI) 
 btnDeny.addEventListener('click', () => { if (currentPermId && window.remiAPI) window.remiAPI.decide(currentPermId, 'deny'); });
 btnFocus.addEventListener('click', () => { if (window.remiAPI) window.remiAPI.focus(); });
 
+// 把气泡/按钮的实际内容高度报给主进程,由它把窗口向上加高来容纳,
+// 人物区永远保持完整大小(不然完工长摘要会把人物挤小)。
+// 内容高度只取决于固定的窗口宽度,和当前窗口高度无关 → 不会来回震荡。
+function reportSize() {
+  if (!window.remiAPI || !window.remiAPI.reportSize) return;
+  requestAnimationFrame(() => {
+    // span 是裁切层,scrollHeight 恒为完整内容高;+22 = 气泡内边距12+边框4+上边距6
+    const bubble = bubbleEl.classList.contains('show') ? bubbleTextEl.scrollHeight + 22 : 0;
+    const actions = actionsEl.classList.contains('show') ? actionsEl.offsetHeight + 6 : 0;
+    window.remiAPI.reportSize({ bubble: Math.ceil(bubble), actions: Math.ceil(actions) });
+  });
+}
+
 // 主进程推送:{ state, animation, bubble, tone, permission, canFocus }
 if (window.remiAPI) {
   window.remiAPI.onUpdate((u) => {
     if (u.animation) setAnim(u.animation, true);
     setBubble(u.bubble || null, u.tone);
     setActions(u.permission || null, !!u.canFocus);
+    reportSize();
   });
 }

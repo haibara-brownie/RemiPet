@@ -107,6 +107,13 @@ function toolBubble(toolName) {
 
 function pick(arr) { return Array.isArray(arr) ? arr[Math.floor(Math.random() * arr.length)] : arr; }
 
+function fmtTokens(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+  return String(n);
+}
+
 // 提示词情绪嗅探:夸奖 / 道谢 / 责备(Claude hook 与 Codex 适配器共用)
 function detectEmotion(prompt) {
   if (typeof prompt !== 'string' || !prompt || prompt.length > 2000) return null;
@@ -120,5 +127,5 @@ module.exports = {
   STATE_PRIORITY, VALID_STATES, ONESHOT_TTL_MS,
   BUSY_STATES, BUSY_TTL_MS, SLEEPY_AFTER_MS,
   STATE_ANIM, STATE_BUBBLE, EMOTION_BUBBLE, EMOTION_ANIM,
-  toolBubble, toolAnim, errorLabel, pick, detectEmotion,
+  toolBubble, toolAnim, errorLabel, pick, detectEmotion, fmtTokens,
 };

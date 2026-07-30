@@ -26,9 +26,10 @@ const DEFAULT_SCALE = 0.65;
 const AGENTS = ['claude', 'codex'];
 
 // 每只宠一份运行时:core 常驻(便于 server/watcher 绑定),win 随勾选生灭
+// extra = 为容纳气泡/按钮在基础高度上追加的窗口高度(向上生长,人物不缩水)
 const runtime = {
-  claude: { core: null, win: null, ready: false },
-  codex: { core: null, win: null, ready: false },
+  claude: { core: null, win: null, ready: false, extra: 0 },
+  codex: { core: null, win: null, ready: false, extra: 0 },
 };
 let tray = null;
 let permissions = null;
@@ -75,6 +76,22 @@ function savedPosition(agent) {
 
 function savePetPos(agent, x, y) {
   saveConfig({ pets: { ...(loadConfig().pets || {}), [agent]: { x, y } } });
+}
+
+// 渲染层报来内容高度 → 调整窗口:底边固定,向上生长/回缩
+function applyContentSize(agent, bubbleH, actionsH) {
+  const rt = runtime[agent];
+  const win = rt.win;
+  if (!win || win.isDestroyed()) return;
+  const { w, h: baseH } = winSize();
+  const extraMax = Math.round(baseH * 0.85); // 兜底上限,超长内容靠气泡内层渐隐裁切
+  const extra = Math.max(0, Math.min(extraMax, Math.ceil((bubbleH || 0) + (actionsH || 0))));
+  if (extra === rt.extra) return;
+  const [x, y] = win.getPosition();
+  const [, curH] = win.getSize();
+  const newH = baseH + extra;
+  win.setBounds({ x, y: y + (curH - newH), width: w, height: newH });
+  rt.extra = extra;
 }
 
 // 完整演示:依次展示所有状态和气泡(带序号标签),期间屏蔽该宠的真实事件
@@ -147,12 +164,7 @@ function hookStatusLabel() {
   try { return installer.status(true).length ? '✓ Hook 已装' : 'Hook 未装'; } catch { return 'Hook 状态未知'; }
 }
 
-function fmtTokens(n) {
-  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
-  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
-  return String(n);
-}
+const fmtTokens = S.fmtTokens;
 
 function buildTray() {
   if (!tray) {
@@ -172,7 +184,7 @@ function buildTray() {
   const en = agentsCfg();
   const usage = metering ? metering.today() : { tokens: 0, cost: 0 };
   const g = runtime.claude.core ? runtime.claude.core.global() : {};
-  const ctxLine = g.contextPercent != null ? ` · 上下文 ${g.contextPercent}%` : '';
+  const ctxLine = g.contextTokens != null ? ` · 上下文 ${fmtTokens(g.contextTokens)}` : '';
 
   const sizeItems = SIZE_PRESETS.map(([label, scale]) => ({
     label,
@@ -187,6 +199,8 @@ function buildTray() {
         const [, oldH] = win.getSize();
         const { w, h } = winSize();
         win.setBounds({ x, y: y + oldH - h, width: w, height: h });
+        runtime[agent].extra = 0;
+        pushRealState(agent); // 宽度变了内容会重排,让渲染层重新上报再长高
       }
       buildTray();
     },
@@ -227,8 +241,9 @@ function buildTray() {
       for (const agent of AGENTS) {
         const win = runtime[agent].win;
         if (!win || win.isDestroyed()) continue;
-        const p = defaultPosition(agent);
-        win.setPosition(p.x, p.y);
+        const p = defaultPosition(agent); // 基准高度下的位置;窗口长高时把顶边再抬高同量
+        const [, curH] = win.getSize();
+        win.setPosition(p.x, p.y - (curH - winSize().h));
         savePetPos(agent, p.x, p.y);
       }
     } },
@@ -280,12 +295,15 @@ function createPet(agent) {
     saveTimer = setTimeout(() => {
       if (win.isDestroyed()) return;
       const [x, y] = win.getPosition();
-      savePetPos(agent, x, y);
+      const [, curH] = win.getSize();
+      // 存底边锚定的基准位置:窗口可能正因气泡长高,直接存 y 会带上临时偏移
+      savePetPos(agent, x, y + (curH - winSize().h));
     }, 500);
   });
   win.on('closed', () => { rt.win = null; rt.ready = false; });
   rt.win = win;
   rt.ready = false;
+  rt.extra = 0;
 }
 
 function destroyPet(agent) {
@@ -385,6 +403,12 @@ app.whenReady().then(() => {
     if (!agent) return;
     const g = runtime[agent].core.global();
     if (g.terminal) focusTerminal(g.terminal, () => {});
+  });
+  ipcMain.on('remi:size', (e, s) => {
+    const agent = agentOf(e.sender);
+    if (agent && s && typeof s === 'object') {
+      applyContentSize(agent, Number(s.bubble) || 0, Number(s.actions) || 0);
+    }
   });
 
   const en = agentsCfg();

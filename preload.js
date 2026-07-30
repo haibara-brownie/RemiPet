@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('remiAPI', {
   onUpdate: (cb) => ipcRenderer.on('remi:update', (_e, u) => cb(u)),
   decide: (id, behavior) => ipcRenderer.send('remi:decide', { id, behavior }),
   focus: () => ipcRenderer.send('remi:focus'),
+  reportSize: (s) => ipcRenderer.send('remi:size', s),
 });

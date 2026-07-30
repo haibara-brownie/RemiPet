@@ -116,6 +116,7 @@ class CodexWatcher {
       cursor: atEnd ? st.size : 0,   // 启动时收养的文件从末尾开始:不回放历史
       leftover: '',
       lastChangeMs: st.mtimeMs,
+      ctxTokens: null,
       ctxPercent: null,
     };
     // 从末尾开始就读不到第一行的 session_meta 了,补读文件头拿 cwd/来源/子代理标记
@@ -240,7 +241,7 @@ class CodexWatcher {
       terminal: this.terminalFor(rec),
       ...extra,
     };
-    if (rec.ctxPercent != null) body.context = { percent: rec.ctxPercent };
+    if (rec.ctxTokens != null) body.context = { used: rec.ctxTokens, percent: rec.ctxPercent };
     this.core.handleEvent(body);
     this.armWaitChain(rec, extra.state);
   }
@@ -277,8 +278,10 @@ class CodexWatcher {
     const win = Number(info.model_context_window);
     const used = Number(last.total_tokens)
       || (Number(last.input_tokens) || 0) + (Number(last.output_tokens) || 0);
-    if (win > 0 && used > 0) {
-      rec.ctxPercent = Math.max(0, Math.min(99, Math.round((used / win) * 100)));
+    if (used > 0) {
+      rec.ctxTokens = used;
+      // codex 的窗口大小是 rollout 里明报的,percent 可信
+      rec.ctxPercent = win > 0 ? Math.max(0, Math.min(99, Math.round((used / win) * 100))) : null;
     }
     const total = Number((info.total_token_usage || {}).total_tokens);
     if (Number.isFinite(total) && total > 0) this.meter(rec.sid, total);

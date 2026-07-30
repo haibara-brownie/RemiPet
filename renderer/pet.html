@@ -19,13 +19,15 @@
     display: flex; flex-direction: column;
   }
 
-  /* 气泡:按内容取高但设上限,剩下的留给人物。
+  /* 气泡:正常情况下主进程会把窗口向上加高来容纳它(人物不缩水);
+     这里的 max-height/可收缩只是超长内容触顶时的兜底,配合内层渐隐裁切。
      注意 overflow 必须加在内层 —— 加在 #bubble 上会把 ::after 的小尾巴裁掉。 */
   #bubble {
     position: relative;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     box-sizing: border-box;
-    max-height: 50%;
+    min-height: 24px;
+    max-height: 60%;
     margin: 6px auto 0;
     max-width: calc(100vw - 20px);
     padding: 6px 10px;
@@ -83,11 +85,12 @@
   /* 人物区:可收缩但有下限,保证永远看得见蕾米 */
   #player { flex: 1 1 auto; min-height: 44%; -webkit-app-region: drag; }
 
-  /* 脚边小名牌:双宠时分清谁是谁,半透明不抢戏 */
+  /* 脚边小名牌:悬浮层,不占布局空间(占了会把人物挤小、自己还被挤出窗口) */
   #nametag {
-    flex: 0 0 auto;
-    align-self: center;
-    margin: 0 0 3px;
+    position: absolute;
+    left: 50%; bottom: 3px;
+    transform: translateX(-50%);
+    z-index: 5;
     padding: 0 8px;
     font-size: 9px; line-height: 14px;
     color: #b03a4a;

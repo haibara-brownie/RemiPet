@@ -85,7 +85,9 @@ function lastAssistantText(entries, sid) {
 }
 
 // 上下文占用:最新助手消息 usage 的 input+cache 读写之和。
-// 单次请求不可能超过窗口,观测值超过 200k 说明在 1M 窗口上。
+// 窗口大小在 200k 以下猜不准(1M 会话的 model 字符串未必带标记,按 200k 算
+// 会误报 95%),所以对外只报真实 tokens;percent 只在有真凭据时给出:
+// model 带 1m 标记,或观测值已超 200k(单次请求不可能超过窗口 → 必是 1M)。
 function contextUsage(entries, sid) {
   if (!Array.isArray(entries)) return null;
   for (let i = entries.length - 1; i >= 0; i--) {
@@ -99,8 +101,12 @@ function contextUsage(entries, sid) {
       + (Number(u.cache_creation_input_tokens) || 0);
     if (used <= 0) continue;
     const model = String((e.message && e.message.model) || '').toLowerCase();
-    const limit = (used > CTX_LIMIT || /(^|[^a-z0-9])1m([^a-z0-9]|$)/.test(model)) ? CTX_LIMIT_1M : CTX_LIMIT;
-    return { used, limit, percent: Math.max(0, Math.min(100, Math.round((used / limit) * 100))) };
+    const limit = (used > CTX_LIMIT || /(^|[^a-z0-9])1m([^a-z0-9]|$)/.test(model)) ? CTX_LIMIT_1M : null;
+    return {
+      used,
+      limit,
+      percent: limit ? Math.max(0, Math.min(100, Math.round((used / limit) * 100))) : null,
+    };
   }
   return null;
 }
