@@ -122,10 +122,17 @@ class Core extends EventEmitter {
     if (dirty || now - this.lastActivityMs > S.SLEEPY_AFTER_MS) this.recompute();
   }
 
+  // 优先级高者胜;同级比谁刚有动静 —— 否则一个早开的会话会一直冒充「当前会话」,
+  // 气泡和「去回复」都归它(codex 侧没有 SessionEnd,老会话要挂满一小时才被遗忘)
   winner() {
     let winner = null;
+    let best = -1;
     for (const sess of this.sessions.values()) {
-      if (!winner || (S.STATE_PRIORITY[sess.state] || 0) > (S.STATE_PRIORITY[winner.state] || 0)) winner = sess;
+      const p = S.STATE_PRIORITY[sess.state] || 0;
+      if (p > best || (p === best && sess.lastEventMs > (winner.lastEventMs || 0))) {
+        winner = sess;
+        best = p;
+      }
     }
     return winner;
   }

@@ -269,11 +269,15 @@ class CodexWatcher {
     this.armWaitChain(rec, extra.state);
   }
 
-  // originator / source → 「去回复」聚焦目标
+  // originator / source → 「去回复」聚焦目标。
+  // 注意顺序:Codex Desktop(ChatGPT.app)自身基于 VS Code 构建,它的会话
+  // 也报 source:'vscode' —— 必须先认 originator,否则会错聚焦到微软 VS Code。
   terminalFor(rec) {
-    if (rec.source === 'vscode') return { bundle_id: 'com.microsoft.VSCode' };
-    if (/desktop/i.test(rec.originator || '')) return { bundle_id: 'com.openai.chat' };
-    return { kind: 'codex-cli', cwd: rec.cwd || null }; // CLI:聚焦时按进程反查终端
+    const org = String(rec.originator || '');
+    if (/desktop/i.test(org)) return { bundle_id: 'com.openai.chat' };
+    if (/tui|cli/i.test(org) || rec.source === 'cli') return { kind: 'codex-cli', cwd: rec.cwd || null };
+    if (rec.source === 'vscode') return { bundle_id: 'com.microsoft.VSCode' }; // 真的 VS Code 插件
+    return { kind: 'codex-cli', cwd: rec.cwd || null }; // 未知来源:按进程反查终端
   }
 
   // 完工后 Codex 其实就在等用户 → done 回落前接一句「等你回话」,再等太久就回 idle

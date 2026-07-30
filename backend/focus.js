@@ -80,12 +80,14 @@ function focusCodexCli(cwd, cb) {
       .map(([pid]) => pid);
     if (!codexPids.length) return cb(new Error('没有在跑的 codex CLI 进程'));
 
-    // 多个 codex 进程时用 cwd 挑会话对应的那个
+    // 多个 codex 进程时用 cwd 挑会话对应的那个。
+    // 挑不出来时宁可不动 —— 聚焦错窗口会把用户从全屏里拽出来,比没反应更糟。
     const pickByCwd = (pids, done) => {
-      if (!cwd || pids.length === 1) return done(pids[0]);
+      if (pids.length === 1) return done(pids[0]);
+      if (!cwd) return done(null);
       let idx = 0;
       const tryNext = () => {
-        if (idx >= pids.length) return done(pids[0]); // 都对不上就拿第一个
+        if (idx >= pids.length) return done(null);
         const pid = pids[idx++];
         execFile('lsof', ['-a', '-p', String(pid), '-d', 'cwd', '-Fn'], { timeout: 3000 }, (_e, o) => {
           if (String(o || '').split('\n').some((l) => l === 'n' + cwd)) return done(pid);
@@ -96,6 +98,7 @@ function focusCodexCli(cwd, cb) {
     };
 
     pickByCwd(codexPids, (pid) => {
+      if (!pid) return cb(new Error('有多个 codex 进程,认不出会话在哪个里'));
       // 沿父进程链向上找宿主 .app(终端或 IDE)
       let appPath = null;
       let cur = pid;
