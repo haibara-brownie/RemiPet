@@ -31,4 +31,5 @@ SOFTWARE.
    其许可为 Spine Runtimes License Agreement，要求：
    - 每一位使用者需自行持有有效的 Spine Editor 许可证；
    - 以任何形式再分发时，必须附带该许可与版权声明。
+   正因如此，本项目**只开源代码，不提供预构建的安装包**。
    详见 THIRD-PARTY-NOTICES.md 与 https://esotericsoftware.com/spine-editor-license
