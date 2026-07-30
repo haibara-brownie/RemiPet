@@ -82,15 +82,6 @@ class Core extends EventEmitter {
       sess.tone = 'info';
     }
 
-    // 上下文占用提醒:报真实 tokens 不报百分比(窗口大小常猜不准);
-    // warn 变色只在 percent 有真凭据(1M 标记或已超 200k)且高位时触发
-    const ctxHot = sess.contextPercent != null && sess.contextPercent >= CTX_WARN_PERCENT;
-    if (sess.bubble && state !== 'error' && sess.contextTokens
-        && (sess.contextTokens >= CTX_SHOW_TOKENS || ctxHot)) {
-      sess.bubble += `\n(上下文已用 ${S.fmtTokens(sess.contextTokens)})`;
-      if (ctxHot && sess.tone === 'info') sess.tone = 'warn';
-    }
-
     // 动画:working 按工具类型;情绪反应临时换装;其余进入状态时定格
     if (state === 'working') sess.anim = S.toolAnim(body.tool_name);
     else if (state === 'thinking' && sess.emotionAnim) { sess.anim = sess.emotionAnim; sess.emotionAnim = null; }
@@ -148,11 +139,20 @@ class Core extends EventEmitter {
     if (bubble && this.sessions.size > 1 && winner.cwd) {
       bubble = `[${path.basename(winner.cwd)}] ${bubble}`;
     }
+    // 上下文提醒在展示时才拼接(存起来会被同状态的后续事件反复追加成好几行):
+    // 报真实 tokens 不报百分比;warn 只在 percent 有真凭据(1M 标记/超 200k)时触发
+    let tone = winner.tone || 'info';
+    const ctxHot = winner.contextPercent != null && winner.contextPercent >= CTX_WARN_PERCENT;
+    if (bubble && winner.state !== 'error' && winner.contextTokens
+        && (winner.contextTokens >= CTX_SHOW_TOKENS || ctxHot)) {
+      bubble += `\n(上下文已用 ${S.fmtTokens(winner.contextTokens)})`;
+      if (ctxHot && tone === 'info') tone = 'warn';
+    }
     return {
       state: winner.state,
       animation: winner.anim,
       bubble,
-      tone: winner.tone || 'info',
+      tone,
       terminal: winner.terminal || null,
       contextTokens: winner.contextTokens ?? null,
       contextPercent: winner.contextPercent ?? null,

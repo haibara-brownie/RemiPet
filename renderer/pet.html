@@ -36,12 +36,17 @@
     border-radius: 14px;
     font-size: 12px; line-height: 1.45; color: #3a2a2e;
     box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    opacity: 0; transform: translateY(4px) scale(.95);
-    transition: opacity .18s ease, transform .18s ease;
+    /* 不显示时必须彻底出布局(display:none)——只调透明度的话,
+       残留文本会继续占位,把人物区悄悄挤小 */
+    display: none;
     pointer-events: none;
     white-space: pre-wrap; word-break: break-word;
   }
-  #bubble.show { opacity: 1; transform: translateY(0) scale(1); }
+  #bubble.show { display: block; animation: bubble-in .18s ease; }
+  @keyframes bubble-in {
+    from { opacity: 0; transform: translateY(4px) scale(.95); }
+    to { opacity: 1; transform: none; }
+  }
   /* Codex 宠配色(OpenAI 绿);写在 tone 规则前面,warn/error 色优先级不受影响 */
   .agent-codex #bubble { border-color: #0f9377; }
   .agent-codex #bubble::after { border-top-color: #0f9377; }
